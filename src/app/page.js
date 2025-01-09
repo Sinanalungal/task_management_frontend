@@ -1,285 +1,192 @@
-"use client"
-import React, { useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
-import { ChevronDown, MessageSquare, Plus, Search } from 'lucide-react';
-import Image from 'next/image';
-import ProjectSkeleton from '@/components/task-manage/ProjectSkeleton';
-import ProjectView from '@/components/task-manage/ProjectView';
-const mockProjects = [
-  {
-    id: 1,
-    name: 'Design System',
-    members: [
-      { id: 1, avatar: '/api/placeholder/32/32', name: 'Alex Smith' },
-      { id: 2, avatar: '/api/placeholder/32/32', name: 'Sarah Johnson' }
-    ],
-    tasks: [
-      { 
-        id: 1, 
-        type: 'Figma',
-        title: 'Update color system',
-        status: 'in-progress',
-        dueDate: '2024-01-15',
-        assignees: [1, 2],
-        attachments: ['design.fig', 'colors.jpg']
-      },
-      {
-        id: 2,
-        type: 'Development',
-        title: 'Implement new components',
-        status: 'todo',
-        dueDate: '2024-01-20',
-        assignees: [2],
-        attachments: ['specs.docs']
+"use client";
+import React from "react";
+import { useFormik } from "formik";
+import * as Yup from "yup";
+import { motion } from "framer-motion";
+import { Lock, Mail, ArrowUpRight } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { login } from "@/lib/api";
+import Image from "next/image";
+
+// Validation Schema
+const LoginSchema = Yup.object().shape({
+  email: Yup.string()
+    .email("Invalid email format")
+    .matches(/^[a-zA-Z0-9._%+-]+@gmail\.com$/, "Only Gmail addresses are allowed")
+    .required("Email is required"),
+  password: Yup.string()
+    .min(8, "Password must be at least 8 characters")
+    .matches(
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/,
+      "Password must include uppercase, lowercase, number, and special character"
+    )
+    .required("Password is required")
+});
+
+export default function Login() {
+  const router = useRouter();
+
+  const formik = useFormik({
+    initialValues: {
+      email: "",
+      password: "",
+    },
+    validationSchema: LoginSchema,
+    onSubmit: async (values, { setSubmitting, setStatus }) => {
+      try {
+        const response = await login(values.email, values.password);
+        console.log(response);
+        // Handle successful login here (e.g., store tokens, redirect)
+        router.push('/dashboard'); // Redirect to dashboard after successful login
+      } catch (error) {
+        console.error("Login failed:", error);
+        setStatus("Login failed. Please try again.");
+      } finally {
+        setSubmitting(false);
       }
-    ]
-  },
-  {
-    id: 2,
-    name: 'Marketing Website',
-    members: [
-      { id: 3, avatar: '/api/placeholder/32/32', name: 'Mike Brown' },
-      { id: 4, avatar: '/api/placeholder/32/32', name: 'Emma Wilson' }
-    ],
-    tasks: [
-      {
-        id: 3,
-        type: 'Content',
-        title: 'Write homepage copy',
-        status: 'completed',
-        dueDate: '2024-01-10',
-        assignees: [3],
-        attachments: ['content.docx']
-      }
-    ]
-  }
-];
-
-
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.1
-    }
-  }
-};
-
-const itemVariants = {
-  hidden: { y: 20, opacity: 0 },
-  visible: {
-    y: 0,
-    opacity: 1
-  }
-};
-const TaskManagementSystem = () => {
-  const [loading, setLoading] = useState(true);
-  const [activeView, setActiveView] = useState('projects');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedProject, setSelectedProject] = useState(null);
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
-
-  // Simulate loading
-  React.useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 2000);
-    return () => clearTimeout(timer);
-  }, []);
+    },
+  });
 
   return (
-    <motion.div 
-      initial={{ opacity: 0 }} 
-      animate={{ opacity: 1 }} 
-      className="flex h-screen font-roboto bg-[#F8FAFC]"
-    >
-      {/* Sidebar */}
-      <motion.div 
-        initial={{ x: -50, opacity: 0 }}
-        animate={{ x: 0, opacity: 1 }}
-        transition={{ duration: 0.5 }}
-        className="w-64 bg-white border-r border-gray-100 flex flex-col shadow-sm"
-      >
-        {/* Logo */}
-        <div className="p-5 border-b border-gray-100">
-      <motion.div 
-        whileHover={{ scale: 1.02 }}
-        className="flex items-center space-x-1"
-      >
-        {/* Replace the gradient div with an image */}
-        <img 
-          src="/taskifylogo.png" 
-          alt="Taskify Logo" 
-          className="w-10 h-10 rounded-xl"
-        />
-        <span className="font-bold font-poppins text-2xl">Taskify</span>
-      </motion.div>
-    </div>
+    <div className="min-h-screen bg-white font-poppins text-gray-900 flex items-center justify-center p-4 sm:p-6 ">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.6, type: "spring" }}
+        // className="w-full max-w-5xl bg-white border border-gray-200 rounded-3xl shadow-2xl overflow-hidden grid grid-cols-1 md:grid-cols-2"
+        // className="w-full max-w-5xl  shadow bg-gray-50 rounded-3xl  overflow-hidden  py-5 grid grid-cols-1 md:grid-cols-2"
+        className="w-full max-w-5xl   rounded-3xl  overflow-hidden  py-5 grid grid-cols-1 md:grid-cols-2"
 
-        {/* Navigation */}
-        <nav className="flex-1 p-4">
-          <motion.div variants={containerVariants} initial="hidden" animate="visible">
-            {['Projects', 'My Tasks', 'Calendar', 'Messages'].map((item, index) => (
-              <motion.button
-                key={item}
-                variants={itemVariants}
-                whileHover={{ x: 5 }}
-                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl mb-2 
-                  ${activeView === item.toLowerCase() ? 'bg-blue-50 text-blue-600' : 'hover:bg-gray-50'}`}
-                onClick={() => setActiveView(item.toLowerCase())}
-              >
-                <span className="font-medium">{item}</span>
-              </motion.button>
-            ))}
-          </motion.div>
 
-          {/* Projects List */}
-          <div className="mt-8">
-            <div className="flex items-center justify-between px-4 mb-4">
-              <h3 className="text-sm font-semibold text-gray-500">Recent Projects</h3>
-              <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.95 }}
-                className="p-1 hover:bg-gray-100 rounded-lg"
+      >
+        {/* Image Section */}
+        <div className="hidden md:block relative">
+          {/* Semi-transparent overlay for better text visibility */}
+          <div className="absolute inset-0  z-10"></div>
+          
+          <Image
+            src="/taskmanageimg.png"
+            alt="Login Background"
+            layout="fill"
+            objectFit="contain"
+            className="absolute inset-0 w-full h-full p-2"
+          />
+          
+          {/* Text Container - Now with responsive text */}
+          <div className="relative z-20 p-6  sm:p-8 lg:p-10 flex flex-col justify-end h-full">
+            <div className="bg-white/80 p-4 sm:p-6 rounded-xl backdrop-blur-sm">
+              <motion.h2
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="text-2xl sm:text-3xl lg:text-2xl text-gray-900 font-bold mb-2 sm:mb-4"
               >
-                <Plus size={16} />
-              </motion.button>
+                Welcome to Our Platform
+              </motion.h2>
+              <motion.p
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+                className="text-sm sm:text-base lg:text-lg text-gray-700 font-medium"
+              >
+                Streamline your workflow and boost productivity with our
+                innovative solutions.
+              </motion.p>
             </div>
-            <AnimatePresence>
-              {mockProjects.map((project, index) => (
-                <motion.button
-                  key={project.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ delay: index * 0.1 }}
-                  onClick={() => setSelectedProject(project)}
-                  className={`w-full flex items-center justify-between px-4 py-3 rounded-xl mb-2
-                    ${selectedProject?.id === project.id 
-                      ? 'bg-blue-50 text-blue-600' 
-                      : 'hover:bg-gray-50'}`}
+          </div>
+        </div>
+
+        {/* Login Form Section */}
+        <div className="p-6 sm:p-8 lg:p-10 flex items-center justify-center">
+          <div className="w-full max-w-md">
+            {/* Login Header */}
+            <div className="mb-6 sm:mb-8 lg:mb-10 text-center">
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-poppins font-semibold tracking-tight text-black mb-1 sm:mb-2">
+                Welcome Back
+              </h1>
+              <p className="text-sm sm:text-base lg:text-lg text-gray-600 font-medium">
+                Sign in to continue to your dashboard
+              </p>
+            </div>
+
+            {/* Login Form */}
+            <form onSubmit={formik.handleSubmit} className="space-y-4 sm:space-y-6">
+              {/* Email Input */}
+              <div className="relative">
+                <label
+                  htmlFor="email"
+                  className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2"
                 >
-                  <div className="flex items-center space-x-3">
-                    <div className={`w-2 h-2 rounded-full ${
-                      project.status === 'active' ? 'bg-green-400' : 'bg-gray-400'
-                    }`} />
-                    <span className="font-medium">{project.name}</span>
+                  Email Address
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Mail className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
                   </div>
-                  <div className="flex -space-x-2">
-                    {project.members.slice(0, 2).map(member => (
-                      <div key={member.id} className="w-6 h-6 rounded-full border-2 border-white overflow-hidden">
-                        <Image
-                          src={member.avatar}
-                          alt={member.name}
-                          width={24}
-                          height={24}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </motion.button>
-              ))}
-            </AnimatePresence>
-          </div>
-        </nav>
-      </motion.div>
-
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col">
-        {/* Header */}
-        <motion.header 
-          initial={{ y: -20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          className="h-20 bg-white border-b border-gray-100 flex items-center justify-between px-6 shadow-sm"
-        >
-          <div className="flex items-center flex-1">
-            <div className="relative w-96">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-              <input
-                type="text"
-                placeholder="Search tasks, projects, or team members..."
-                className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-4">
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="p-2 hover:bg-gray-100 rounded-xl relative"
-            >
-              <MessageSquare size={20} />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-            </motion.button>
-            
-            <div className="relative">
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setUserMenuOpen(!userMenuOpen)}
-                className="flex items-center space-x-2"
-              >
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-purple-500 overflow-hidden">
-                  <Image
-                    src="/api/placeholder/32/32"
-                    alt="Profile"
-                    width={32}
-                    height={32}
+                  <input
+                    type="email"
+                    id="email"
+                    {...formik.getFieldProps('email')}
+                    className="w-full pl-10 pr-4 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-black transition-all duration-300"
+                    placeholder="you@gmail.com"
                   />
                 </div>
-                <ChevronDown size={16} className="text-gray-600" />
+                {formik.touched.email && formik.errors.email && (
+                  <div className="text-red-500 text-xs sm:text-sm mt-1">
+                    {formik.errors.email}
+                  </div>
+                )}
+              </div>
+
+              {/* Password Input */}
+              <div className="relative">
+                <label
+                  htmlFor="password"
+                  className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2"
+                >
+                  Password
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Lock className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
+                  </div>
+                  <input
+                    type="password"
+                    id="password"
+                    {...formik.getFieldProps('password')}
+                    className="w-full pl-10 pr-12 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-black transition-all duration-300"
+                    placeholder="Enter your password"
+                  />
+                </div>
+                {formik.touched.password && formik.errors.password && (
+                  <div className="text-red-500 text-xs sm:text-sm mt-1">
+                    {formik.errors.password}
+                  </div>
+                )}
+              </div>
+
+              {/* Submit Button */}
+              <motion.button
+                type="submit"
+                disabled={formik.isSubmitting}
+                className="w-full bg-black text-white text-sm sm:text-base font-bold py-2 sm:py-3 rounded-xl hover:bg-gray-800 transition-all flex items-center justify-center space-x-2 disabled:opacity-50"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                Sign In
+                <ArrowUpRight className="ml-2 w-4 h-4 sm:w-5 sm:h-5" />
               </motion.button>
 
-              <AnimatePresence>
-                {userMenuOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 10 }}
-                    className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-2"
-                  >
-                    {[
-                      { icon: User, label: 'Profile' },
-                      { icon: Settings, label: 'Settings' },
-                      { icon: LogOut, label: 'Log Out' }
-                    ].map((item, index) => (
-                      <motion.button
-                        key={item.label}
-                        whileHover={{ x: 5 }}
-                        className="w-full flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-gray-50"
-                      >
-                        <item.icon size={16} />
-                        <span>{item.label}</span>
-                      </motion.button>
-                    ))}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+              {/* Form Status/Error Message */}
+              {formik.status && (
+                <div className="text-red-500 text-xs sm:text-sm text-center mt-2">
+                  {formik.status}
+                </div>
+              )}
+            </form>
           </div>
-        </motion.header>
-
-        {/* Content Area */}
-        <div className="flex-1 p-6 overflow-auto">
-          {loading ? (
-            <ProjectSkeleton />
-          ) : selectedProject ? (
-            <ProjectView project={selectedProject} />
-          ) : (
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-center text-gray-500 mt-20"
-            >
-              Select a project or create a new one to get started
-            </motion.div>
-          )}
         </div>
-      </div>
-    </motion.div>
+      </motion.div>
+    </div>
   );
-};
-
-export default TaskManagementSystem;
+}
