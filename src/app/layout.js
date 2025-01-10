@@ -1,4 +1,5 @@
 import { Geist, Geist_Mono } from "next/font/google";
+import  { Toaster } from 'react-hot-toast';
 import "./globals.css";
 
 const geistSans = Geist({
@@ -22,7 +23,16 @@ export default function RootLayout({ children }) {
       <body
         // className={`${geistSans.variable} ${geistMono.variable} antialiased max-w-[1800px] mx-auto`}
         className={`${geistSans.variable} ${geistMono.variable} antialiased `}
-      >
+      ><Toaster
+      position="top-center"
+      reverseOrder={false}
+      toastOptions={{
+        className: 'font-semibold font-roboto',
+        style: {
+          padding: '16px',
+        },
+      }}
+    />
         {children}
       </body>
     </html>

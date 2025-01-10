@@ -133,9 +133,9 @@ const ProjectsList = () => {
 
     return (
         <div className="min-h-screen bg-gray-50 p-4">
-            <Breadcrumb items={breadcrumbItems} />
 
             <div className="max-w-7xl mx-auto">
+            <Breadcrumb items={breadcrumbItems} />
                 {/* Header with search and add button */}
                 <div className="flex flex-col sm:flex-row gap-4 items-center mb-6">
                     <div className="relative flex-1 w-full">

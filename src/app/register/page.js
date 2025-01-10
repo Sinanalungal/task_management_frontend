@@ -1,11 +1,12 @@
 "use client"
-import React from "react";
+import React, { useCallback, useState } from "react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import { motion } from "framer-motion";
-import { Lock, Mail, User, Upload, ArrowUpRight } from "lucide-react";
+import { Lock, Mail, User, Upload, ArrowUpRight, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { register } from "@/lib/api";
 
 // Validation Schema
 const RegisterSchema = Yup.object().shape({
@@ -20,7 +21,7 @@ const RegisterSchema = Yup.object().shape({
       /^(?=.*[a-zA-Z])(?!(.*_{3,}))[a-zA-Z0-9_]+$/,
       "Username must include at least one letter, and cannot have more than two consecutive underscores"
     )
-    .required("Username is required"),  
+    .required("Username is required"),
   password: Yup.string()
     .min(8, "Password must be at least 8 characters")
     .matches(
@@ -33,16 +34,17 @@ const RegisterSchema = Yup.object().shape({
     .required('Please confirm your password'),
   profilePicture: Yup.mixed()
     .nullable()
-    .test('fileSize', 'File too large', (value) => 
+    .test('fileSize', 'File too large (max 5MB)', (value) =>
       !value || (value && value.size <= 5000000)
     )
-    .test('fileFormat', 'Unsupported format', (value) =>
+    .test('fileFormat', 'Unsupported format (jpg, jpeg, png only)', (value) =>
       !value || (value && ['image/jpeg', 'image/png', 'image/jpg'].includes(value.type))
     )
 });
 
 export default function Register() {
   const router = useRouter();
+  const [fileName, setFileName] = useState("");
 
   const formik = useFormik({
     initialValues: {
@@ -59,21 +61,13 @@ export default function Register() {
         formData.append('email', values.email);
         formData.append('username', values.username);
         formData.append('password', values.password);
+        formData.append('confirm_password', values.confirmPassword);
         if (values.profilePicture) {
           formData.append('profile_picture', values.profilePicture);
         }
-
-        // Replace with your API endpoint
-        // const response = await fetch('/api/register', {
-        //   method: 'POST',
-        //   body: formData
-        // });
-
-        // if (response.ok) {
-        //   router.push('/login');
-        // } else {
-        //   throw new Error('Registration failed');
-        // }
+        await register(formData);
+        sessionStorage.setItem('registrationEmail', values.email);
+        router.push('/otp');
       } catch (error) {
         console.error("Registration failed:", error);
         setStatus("Registration failed. Please try again.");
@@ -83,11 +77,28 @@ export default function Register() {
     },
   });
 
-  const handleImageChange = (event) => {
-    if (event.currentTarget.files?.[0]) {
-      formik.setFieldValue('profilePicture', event.currentTarget.files[0]);
+  const handleImageChange = useCallback((event) => {
+    const file = event.currentTarget.files?.[0];
+    if (file) {
+      // Validate file size and type
+      if (file.size > 5000000) {
+        formik.setFieldError('profilePicture', 'File too large (max 5MB)');
+        return;
+      }
+      if (!['image/jpeg', 'image/png', 'image/jpg'].includes(file.type)) {
+        formik.setFieldError('profilePicture', 'Unsupported format (jpg, jpeg, png only)');
+        return;
+      }
+
+      formik.setFieldValue('profilePicture', file);
+      setFileName(file.name);
     }
-  };
+  }, [formik]);
+
+  const removeFile = useCallback(() => {
+    formik.setFieldValue('profilePicture', null);
+    setFileName("");
+  }, [formik]);
 
   return (
     <div className="min-h-screen bg-white font-poppins text-gray-900 flex items-center justify-center p-4 sm:p-6">
@@ -234,29 +245,44 @@ export default function Register() {
 
               {/* Profile Picture Upload */}
               <div className="relative">
-                <label htmlFor="profilePicture" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
-                  Profile Picture (Optional)
-                </label>
-                <div className="relative">
-                  <input
-                    type="file"
-                    id="profilePicture"
-                    onChange={handleImageChange}
-                    accept="image/*"
-                    className="hidden"
-                  />
-                  <label
-                    htmlFor="profilePicture"
-                    className="w-full flex items-center justify-center px-4 py-2 sm:py-3 border border-gray-300 rounded-xl cursor-pointer hover:bg-gray-50 transition-all"
-                  >
-                    <Upload className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 mr-2" />
-                    <span className="text-sm sm:text-base text-gray-600">Choose a file</span>
-                  </label>
-                </div>
-                {formik.touched.profilePicture && formik.errors.profilePicture && (
-                  <div className="text-red-500 text-xs sm:text-sm mt-1">{formik.errors.profilePicture}</div>
-                )}
-              </div>
+    <label htmlFor="profilePicture" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
+      Profile Picture (Optional)
+    </label>
+    <div className="relative">
+      <input
+        type="file"
+        id="profilePicture"
+        onChange={handleImageChange}
+        accept="image/*"
+        className="hidden"
+      />
+      {!fileName ? (
+        <label
+          htmlFor="profilePicture"
+          className="w-full flex items-center justify-center px-4 py-2 sm:py-3 border border-gray-300 rounded-xl cursor-pointer hover:bg-gray-50 transition-all"
+        >
+          <Upload className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 mr-2" />
+          <span className="text-sm sm:text-base text-gray-600">Choose a file</span>
+        </label>
+      ) : (
+        <div className="w-full flex items-center justify-between px-4 py-2 sm:py-3 border border-gray-300 rounded-xl">
+          <span className="text-sm sm:text-base text-gray-600 truncate max-w-[80%]">
+            {fileName}
+          </span>
+          <button
+            type="button"
+            onClick={removeFile}
+            className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+          >
+            <X className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500" />
+          </button>
+        </div>
+      )}
+    </div>
+    {formik.touched.profilePicture && formik.errors.profilePicture && (
+      <div className="text-red-500 text-xs sm:text-sm mt-1">{formik.errors.profilePicture}</div>
+    )}
+  </div>
 
               {/* Submit Button */}
               <motion.button
@@ -277,6 +303,20 @@ export default function Register() {
                 </div>
               )}
             </form>
+
+            {/* Login Link */}
+            <div className="mt-6 text-center">
+              <p className="text-sm sm:text-base text-gray-600">
+                Already have an account?{" "}
+                <button
+                  type="button"
+                  onClick={() => router.push('/')}
+                  className="text-black font-semibold hover:underline"
+                >
+                  Log in
+                </button>
+              </p>
+            </div>
           </div>
         </div>
       </motion.div>

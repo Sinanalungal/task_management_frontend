@@ -2,12 +2,20 @@ import axios from 'axios';
 
 // Create a custom Axios instance
 const axiosInstance = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL, // API URL from env variable
+  baseURL: 'http://localhost:8000', // API URL from env variable
   headers: {
     'Content-Type': 'application/json',
   },
   withCredentials: true,  // Ensures credentials (cookies) are sent with each request
 });
+
+export const axiosInstanceforAuth = axios.create({
+  baseURL: 'http://localhost:8000', 
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
 
 // Add response interceptor to handle token refresh on 401 errors
 axiosInstance.interceptors.response.use(

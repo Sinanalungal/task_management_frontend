@@ -5,8 +5,8 @@ import * as Yup from "yup";
 import { motion } from "framer-motion";
 import { Lock, Mail, ArrowUpRight } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { login } from "@/lib/api";
 import Image from "next/image";
+import { login } from "@/lib/api";
 
 // Validation Schema
 const LoginSchema = Yup.object().shape({
@@ -59,6 +59,7 @@ export default function Login() {
 
 
       >
+
         {/* Image Section */}
         <div className="hidden md:block relative">
           {/* Semi-transparent overlay for better text visibility */}
@@ -184,6 +185,19 @@ export default function Login() {
                 </div>
               )}
             </form>
+            {/* Login Link */}
+            <div className="mt-6 text-center">
+              <p className="text-sm sm:text-base text-gray-600">
+                Don't have an account?{" "}
+                <button
+                  type="button"
+                  onClick={() => router.push('/register')}
+                  className="text-black font-semibold hover:underline"
+                >
+                  Register
+                </button>
+              </p>
+            </div>
           </div>
         </div>
       </motion.div>
